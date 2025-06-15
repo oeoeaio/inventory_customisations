@@ -11,64 +11,40 @@ class BulkReplenishmentWizard(models.TransientModel):
     _name = 'bulk.replenishment.wizard'
     _description = 'Bulk Inventory Replenishment Wizard'
 
-    file = fields.Binary(string="CSV File")
-    filename = fields.Char(string="Filename")
+    state = fields.Selection([
+        ('select_route', 'Select Supplier'),
+        ('replenish', 'Confirm')
+    ], default='select_route')
+
+    route_id = fields.Many2one(
+        'stock.location.route',
+        string='Supplier',
+        required=True,
+        domain="[('product_selectable', '=', True), ('name', 'not in', ['Buy'])]"
+    )
+
     line_ids = fields.One2many('bulk.replenishment.line', 'wizard_id', string="Lines")
-    step = fields.Selection([('upload', 'Upload CSV'), ('review', 'Review & Confirm')], default='upload')
 
-    def get_product_by_external_id(self, external_id):
-        model_data = self.env['ir.model.data'].search([
-            '|',
-            ('name', '=', external_id),
-            ('name', '=', f"__import__.{external_id}")
-        ], limit=1)
+    def action_next(self):
+        # Get products with selected route
+        products = self.env['product.product'].search([('route_ids', 'in', self.route_id.id)])
 
-        if model_data:
-            if model_data.model == 'product.product':
-                return self.env['product.product'].browse(model_data.res_id)
-            elif model_data.model == 'product.template':
-                return self.env['product.template'].browse(model_data.res_id).product_variant_id
-        return None
+        for product in products:
+            self.env['bulk.replenishment.line'].create({
+                'wizard_id': self.id,
+                'product_id': product.id,
+                'quantity': 0
+            })
 
-    def action_import_csv(self):
-        if not self.file:
-            raise ValidationError("Please upload a file.")
-        self.line_ids.unlink()
+        self.state = 'replenish'
 
-        try:
-            csv_data = base64.b64decode(self.file)
-            data = io.StringIO(csv_data.decode("utf-8"))
-            reader = csv.reader(data)
-            for row in reader:
-                if len(row) < 2:
-                    continue
-                external_id, quantity = row[0].strip(), row[1].strip()
-                product = self.get_product_by_external_id(external_id)
-                if not product:
-                    continue
-                try:
-                    quantity = float(quantity)
-                except ValueError:
-                    continue
-
-                self.env['bulk.replenishment.line'].create({
-                    'wizard_id': self.id,
-                    'product_id': product.id,
-                    'quantity': quantity
-                })
-
-            self.step = 'review'
-
-            return {
-                'type': 'ir.actions.act_window',
-                'res_model': 'bulk.replenishment.wizard',
-                'view_mode': 'form',
-                'res_id': self.id,
-                'target': 'new',
-            }
-
-        except Exception as e:
-            raise ValidationError(f"Error processing file: {str(e)}")
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'bulk.replenishment.wizard',
+            'view_mode': 'form',
+            'res_id': self.id,
+            'target': 'new',
+        }
 
     def action_process_lines(self):
         stock_location = self.env.ref('stock.stock_location_stock')

@@ -4,20 +4,17 @@
     <field name="model">bulk.replenishment.wizard</field>
     <field name="arch" type="xml">
       <form string="Bulk Inventory Replenishment">
-        <field name="step" invisible="1"/>
+        <field name="state" invisible="1"/>
 
-        <div attrs="{'invisible': [('step', '=', 'review')]}">
-          <div class="o_form_full_width">
-            <field name="file" filename="filename"/>
-            <field name="filename"/>
-          </div>
-        </div>
+        <group attrs="{'invisible': [('state', '=', 'replenish')]}">
+          <field name="route_id"/>
+        </group>
 
-        <div attrs="{'invisible': [('step', '=', 'upload')]}">
+        <div attrs="{'invisible': [('state', '=', 'select_route')]}">
           <div class="o_form_full_width">
             <field name="line_ids">
-              <tree editable="bottom">
-                <field name="product_id" readonly="1" />
+              <tree editable="bottom" create="false" delete="false">
+                <field name="product_id" readonly="1"/>
                 <field name="quantity"/>
               </tree>
             </field>
@@ -25,8 +22,8 @@
         </div>
 
         <footer>
-          <button string="Import CSV" type="object" name="action_import_csv" class="btn-primary" attrs="{'invisible': [('step', '=', 'review')]}" />
-          <button string="Process Replenishment" type="object" name="action_process_lines" class="btn-primary" attrs="{'invisible': [('step', '=', 'upload')]}" />
+          <button string="Next" type="object" name="action_next" class="btn-primary" attrs="{'invisible': [('state', '=', 'replenish')]}" />
+          <button string="Finalise Replenishment" type="object" name="action_process_lines" class="btn-primary" attrs="{'invisible': [('state', '=', 'select_route')]}" />
           <button string="Cancel" special="cancel"/>
         </footer>
       </form>
