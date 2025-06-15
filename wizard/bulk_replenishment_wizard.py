@@ -40,6 +40,7 @@ class BulkReplenishmentWizard(models.TransientModel):
 
         return {
             'type': 'ir.actions.act_window',
+            'name': f"Step 2: Replenish Stock ({self.route_id.name or ''})",
             'res_model': 'bulk.replenishment.wizard',
             'view_mode': 'form',
             'res_id': self.id,
@@ -85,4 +86,4 @@ class BulkReplenishmentLine(models.TransientModel):
 
     wizard_id = fields.Many2one('bulk.replenishment.wizard', required=True, ondelete='cascade')
     product_id = fields.Many2one('product.product', string="Product", required=True)
-    quantity = fields.Float(string="Quantity", required=True)
+    quantity = fields.Float(string="Quantity Received", required=True)

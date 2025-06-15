@@ -4,6 +4,12 @@
     <field name="model">bulk.replenishment.wizard</field>
     <field name="arch" type="xml">
       <form string="Bulk Inventory Replenishment">
+        <group>
+          <div>
+            <p>This wizard allows you to adjust inventory when receiving an order from a supplier.</p>
+          </div>
+        </group>
+
         <field name="state" invisible="1"/>
 
         <group attrs="{'invisible': [('state', '=', 'replenish')]}">
@@ -31,14 +37,14 @@
   </record>
 
   <record id="action_bulk_replenishment_wizard" model="ir.actions.act_window">
-    <field name="name">Bulk Replenishment</field>
+    <field name="name">Step 1: Select Supplier</field>
     <field name="res_model">bulk.replenishment.wizard</field>
     <field name="view_mode">form</field>
     <field name="target">new</field>
   </record>
 
   <menuitem id="menu_bulk_replenishment_root"
-            name="Bulk Replenishment"
+            name="Replenishment by Supplier"
             parent="stock.menu_stock_inventory_control"
             action="action_bulk_replenishment_wizard"
             sequence="150" />
