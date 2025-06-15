@@ -1,0 +1,44 @@
+<odoo>
+  <record id="view_inventory_by_route_wizard" model="ir.ui.view">
+    <field name="name">inventory.by.route.wizard.form</field>
+    <field name="model">inventory.by.route.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Inventory by Route Wizard">
+        <field name="state" invisible="1"/>
+
+        <group attrs="{'invisible': [('state', '=', 'show_stock')]}">
+          <field name="route_id"/>
+        </group>
+
+        <div attrs="{'invisible': [('state', '=', 'select_route')]}">
+          <div class="o_form_full_width">
+            <field name="product_lines">
+              <tree>
+                <field name="product_id"/>
+                <field name="quantity"/>
+              </tree>
+            </field>
+          </div>
+        </div>
+
+        <footer>
+          <button string="Next" type="object" name="action_next" class="btn-primary" attrs="{'invisible': [('state', '=', 'show_stock')]}"/>
+          <button string="Cancel" special="cancel" attrs="{'invisible': [('state', '=', 'show_stock')]}"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_inventory_by_route_wizard" model="ir.actions.act_window">
+    <field name="name">Inventory by Supplier</field>
+    <field name="res_model">inventory.by.route.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+  </record>
+
+  <menuitem id="menu_inventory_by_route"
+          name="Inventory by Supplier"
+          parent="stock.menu_stock_inventory_control"
+          action="action_inventory_by_route_wizard"
+          sequence="149" />
+</odoo>
