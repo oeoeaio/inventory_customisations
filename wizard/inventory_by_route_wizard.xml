@@ -4,33 +4,42 @@
     <field name="model">inventory.by.route.wizard</field>
     <field name="arch" type="xml">
       <form string="Inventory by Route Wizard">
+        <group>
+          <div>
+            <p>This wizard allows you to review current stock levels by supplier, and optionally adjust them as required.</p>
+          </div>
+        </group>
+
         <field name="state" invisible="1"/>
 
-        <group attrs="{'invisible': [('state', '=', 'show_stock')]}">
+        <group attrs="{'invisible': [('state', '=', 'adjust_stock')]}">
           <field name="route_id"/>
         </group>
 
         <div attrs="{'invisible': [('state', '=', 'select_route')]}">
           <div class="o_form_full_width">
             <field name="product_lines">
-              <tree>
-                <field name="product_id"/>
-                <field name="quantity"/>
+              <tree editable="bottom" create="false" delete="false">
+                <field name="product_id" readonly="1"/>
+                <field name="quantity" readonly="1"/>
+                <field name="new_quantity" placeholder="Leave empty to skip"/>
               </tree>
             </field>
           </div>
         </div>
 
         <footer>
-          <button string="Next" type="object" name="action_next" class="btn-primary" attrs="{'invisible': [('state', '=', 'show_stock')]}"/>
-          <button string="Cancel" special="cancel" attrs="{'invisible': [('state', '=', 'show_stock')]}"/>
+          <button string="Next" type="object" name="action_next" class="btn-primary" attrs="{'invisible': [('state', '=', 'adjust_stock')]}"/>
+          <button string="Apply Stock Adjustments" type="object" name="action_apply_stock_adjustment"
+                  class="btn-primary"  attrs="{'invisible': [('state', '!=', 'adjust_stock')]}"/>
+          <button string="Cancel" special="cancel" attrs="{'invisible': [('state', '=', 'adjust_stock')]}"/>
         </footer>
       </form>
     </field>
   </record>
 
   <record id="action_inventory_by_route_wizard" model="ir.actions.act_window">
-    <field name="name">Inventory by Supplier</field>
+    <field name="name">Step 1: Select Supplier</field>
     <field name="res_model">inventory.by.route.wizard</field>
     <field name="view_mode">form</field>
     <field name="target">new</field>
