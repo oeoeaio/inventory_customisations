@@ -6,7 +6,7 @@
       <form string="Replenishment Via CSV Wizard">
         <group>
           <div>
-            <p>This wizard allows you to adjust inventory using a CSV. Expected format is "product.external_id,quantity_to_add_to_stock"</p>
+            <p>This wizard allows you to adjust inventory using a CSV. Expected format is "product.external_id,quantity" or "product.external_id,quantity,source_document". When a third column is present every row must supply a Source Document.</p>
           </div>
         </group>
         <field name="step" invisible="1"/>
@@ -24,6 +24,7 @@
               <tree editable="bottom" create="false" delete="false">
                 <field name="product_id" readonly="1" />
                 <field name="quantity"/>
+                <field name="source_document"/>
               </tree>
             </field>
           </div>

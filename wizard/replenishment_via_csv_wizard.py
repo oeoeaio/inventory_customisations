@@ -47,11 +47,13 @@ class ReplenishmentViaCSVWizard(models.TransientModel):
             csv_data = base64.b64decode(self.file)
             data = io.StringIO(csv_data.decode("utf-8"))
             reader = csv.reader(data)
-            for row in reader:
-                if not self.valid_row(row):
-                    continue
-                if len(row) < 2:
-                    continue
+            rows = [row for row in reader if self.valid_row(row)]
+
+            three_col_mode = any(
+                len(row) >= 3 and row[2].strip() for row in rows
+            )
+
+            for row_number, row in enumerate(rows, start=1):
                 external_id, quantity = row[0].strip(), row[1].strip()
                 product = self.get_product_by_external_id(external_id)
                 if not product:
@@ -61,10 +63,22 @@ class ReplenishmentViaCSVWizard(models.TransientModel):
                 except ValueError:
                     continue
 
+                source_document = ''
+                if three_col_mode:
+                    if len(row) < 3 or not row[2].strip():
+                        raise ValidationError(
+                            f"Row {row_number} ({external_id}) is missing a "
+                            f"Source Document. When any row in the CSV "
+                            f"includes a third column, every row must "
+                            f"supply one."
+                        )
+                    source_document = row[2].strip()
+
                 self.env['replenishment.via_csv.line'].create({
                     'wizard_id': self.id,
                     'product_id': product.id,
-                    'quantity': quantity
+                    'quantity': quantity,
+                    'source_document': source_document,
                 })
 
             self.step = 'review'
@@ -78,6 +92,8 @@ class ReplenishmentViaCSVWizard(models.TransientModel):
                 'target': 'new',
             }
 
+        except ValidationError:
+            raise
         except Exception as e:
             raise ValidationError(f"Error processing file: {str(e)}")
 
@@ -86,31 +102,42 @@ class ReplenishmentViaCSVWizard(models.TransientModel):
         supplier_location = self.env.ref('stock.stock_location_suppliers')
         picking_type = self.env.ref('stock.picking_type_in')
 
-        picking = self.env['stock.picking'].create({
-            'picking_type_id': picking_type.id,
-            'location_id': supplier_location.id,
-            'location_dest_id': stock_location.id,
-            'move_type': 'direct',
-        })
-
+        groups = {}
         for line in self.line_ids:
             if line.quantity == 0:
                 continue
+            key = line.source_document or ''
+            groups.setdefault(key, []).append(line)
 
-            self.env['stock.move'].create({
-                'name': line.product_id.display_name,
-                'product_id': line.product_id.id,
-                'product_uom_qty': line.quantity,
-                'product_uom': line.product_id.uom_id.id,
-                'picking_id': picking.id,
+        pickings = []
+        for source_document, lines in groups.items():
+            picking_vals = {
+                'picking_type_id': picking_type.id,
                 'location_id': supplier_location.id,
                 'location_dest_id': stock_location.id,
-            })
+                'move_type': 'direct',
+            }
+            if source_document:
+                picking_vals['origin'] = source_document
+            picking = self.env['stock.picking'].create(picking_vals)
+            pickings.append(picking)
 
-        picking.action_confirm()
-        for move in picking.move_ids_without_package:
-            move.quantity_done = move.product_uom_qty
-        picking.button_validate()
+            for line in lines:
+                self.env['stock.move'].create({
+                    'name': line.product_id.display_name,
+                    'product_id': line.product_id.id,
+                    'product_uom_qty': line.quantity,
+                    'product_uom': line.product_id.uom_id.id,
+                    'picking_id': picking.id,
+                    'location_id': supplier_location.id,
+                    'location_dest_id': stock_location.id,
+                })
+
+        for picking in pickings:
+            picking.action_confirm()
+            for move in picking.move_ids_without_package:
+                move.quantity_done = move.product_uom_qty
+            picking.button_validate()
 
         return {'type': 'ir.actions.act_window_close'}
 
@@ -121,3 +148,4 @@ class ReplenishmentViaCSVLine(models.TransientModel):
     wizard_id = fields.Many2one('replenishment.via_csv.wizard', required=True, ondelete='cascade')
     product_id = fields.Many2one('product.product', string="Product", required=True)
     quantity = fields.Float(string="Quantity", required=True)
+    source_document = fields.Char(string="Source Document")
