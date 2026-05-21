@@ -17,6 +17,9 @@
         </group>
 
         <div attrs="{'invisible': [('state', '=', 'select_route')]}">
+          <group>
+            <field name="source_document"/>
+          </group>
           <div class="o_form_full_width">
             <field name="line_ids">
               <tree editable="bottom" create="false" delete="false">

@@ -25,6 +25,8 @@ class BulkReplenishmentWizard(models.TransientModel):
 
     line_ids = fields.One2many('bulk.replenishment.line', 'wizard_id', string="Lines")
 
+    source_document = fields.Char(string="Source Document")
+
     def action_next(self):
         # Get products with selected route
         products = self.env['product.product'].search([('route_ids', 'in', self.route_id.id)])
@@ -52,12 +54,15 @@ class BulkReplenishmentWizard(models.TransientModel):
         supplier_location = self.env.ref('stock.stock_location_suppliers')
         picking_type = self.env.ref('stock.picking_type_in')
 
-        picking = self.env['stock.picking'].create({
+        picking_vals = {
             'picking_type_id': picking_type.id,
             'location_id': supplier_location.id,
             'location_dest_id': stock_location.id,
             'move_type': 'direct',
-        })
+        }
+        if self.source_document:
+            picking_vals['origin'] = self.source_document
+        picking = self.env['stock.picking'].create(picking_vals)
 
         for line in self.line_ids:
             if line.quantity == 0:
